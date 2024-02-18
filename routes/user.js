@@ -14,54 +14,53 @@ async function genHashedpassword(password){
   genHashedpassword("shahul@123");
   
 
-  router.post('/signup', async function(req,res){
-    const {username,password}=req.body;
-    const hashedpassword = await genHashedpassword(password)
-    const isuserExist = await getuserByname(username);
-  console.log(username,isuserExist)
-
-
-    //  res.send(isuserExist);
+  router.post("/signup", async function (req, res) {
+    try {
+      const {email,password,name,location}=req.body;
+      const hashedpassword = await genhashpassword(password);
+      const result = new User ({email:email,password:hashedpassword,name:name,location:location});
+      console.log(result);
+      await result.save();
+      if(result){
+        res.status(200).send({msg:"user created successsfully"})
+      }else{
+        res.status(404).send({error:"user not created"});
+      }
+      
+    } catch (error) {
+      console.log(error)
+      res.status(500).send({error:"internal server error"})
+    }
+   
   
-     if(isuserExist){
-      res.status(400).send({msg:"choose another username"});
-     }else{
-    const result = await createuser({
-      username:username,
-      password:hashedpassword,
-    });
-    res.send(result);
-
-
-     }
-    
   });
   
-
-  router.post('/login', async function(req,res){
-    const {username,password}=req.body;
-    const userFromDb = await getuserByname(username);
-
-    console.log(userFromDb)
-    if(!userFromDb){
-      res.status(401).send({msg:"invalid credential"});
-
-    }else{
-      const storedDbpassword=userFromDb.password;
-      const ispasswordMatch= await bcrypt.compare(password,storedDbpassword);
-      console.log(ispasswordMatch);
-      // res.send(ispasswordMatch);
-    
-     if(ispasswordMatch){
-     const token = jwt.sign({id:userFromDb._id},process.env.SECRET_KEY);
-      res.send({msg:"successfull login",token:token});
-
-     }else{
-      res.status(401).send({msg:"invalid credential"});
-     }
-
+  router.post("/login", async function (req, res) {
+    try {
+      const { email, password } = req.body;
+      const existuser = await User.findOne({ email: email });
+  
+      if (!existuser) {
+        res.status(401).send({ error: "User does not exist" });
+      } else {
+        const storedpassword = existuser.password;
+        const ispasswordmatch = await bcrypt.compare(password, storedpassword);
+        if (ispasswordmatch) {
+          // Generate the token with the desired payload
+          const token = jwt.sign({ id: existuser._id, email: existuser.email }, process.env.SECRET_KEY);
+  
+          // Send the token in the response
+          res.send({ msg: "Successful login", token: token, email: email });
+        } else {
+          res.status(401).send({ error: "Invalid password or email" });
+        }
+      }
+    } catch (error) {
+      console.error(error); // Log the error for debugging
+      res.status(500).send({ error: "Internal server error" });
     }
   });
+  
 
 
   export const usersRouter = router;
