@@ -17,50 +17,47 @@ async function genHashedpassword(password){
 
   router.post("/signup", async function (req, res) {
     try {
-      const {email,password,name,location}=req.body;
-      const hashedpassword = await genhashpassword(password);
-      const result = new User ({email:email,password:hashedpassword,name:name,location:location});
-      console.log(result);
-      await result.save();
-      if(result){
-        res.status(200).send({msg:"user created successsfully"})
-      }else{
-        res.status(404).send({error:"user not created"});
-      }
-      
-    } catch (error) {
-      console.log(error)
-      res.status(500).send({error:"internal server error"})
-    }
-   
-  
-  });
-  
-  router.post("/login", async function (req, res) {
-    try {
-      const { email, password } = req.body;
-      const existuser = await User.findOne({ email: email });
-  
-      if (!existuser) {
-        res.status(401).send({ error: "User does not exist" });
-      } else {
-        const storedpassword = existuser.password;
-        const ispasswordmatch = await bcrypt.compare(password, storedpassword);
-        if (ispasswordmatch) {
-          // Generate the token with the desired payload
-          const token = jwt.sign({ id: existuser._id, email: existuser.email }, process.env.SECRET_KEY);
-  
-          // Send the token in the response
-          res.send({ msg: "Successful login", token: token, email: email });
+        const { email, password } = req.body;
+        const hashedpassword = await genhashpassword(password);
+        const existuser = await createuser(email);
+
+        if (existuser) {
+            console.log(existuser)
+            res.status(422).send({ error: "Already email exist" });
+            console.log(existuser.error);
         } else {
-          res.status(401).send({ error: "Invalid password or email" });
+            const result = getuserByname({ email: email, password: hashedpassword });
+            res.status(200).send({ msg: "sucessfully registered" });
         }
-      }
     } catch (error) {
-      console.error(error); // Log the error for debugging
+        console.log(error);
+        res.status(500).send({ error: "Internal server error" });
+    };
+});
+  
+router.post("/login", async function (req, res) {
+  try {
+      const { email, password } = req.body;
+      const existuser = await getuserByname(email);
+      if (!existuser) {
+          res.status(401).send({ error: "User dose not exist" })
+      } else {
+          const storedpassword = existuser.password;
+          const ispasswordmatch = await bcrypt.compare(password, storedpassword);
+          if (ispasswordmatch) {
+
+              const token = jwt.sign({ id: existuser._id }, process.env.SECRET_KEY);
+
+              res.send({ msg: "sucessfull login", token: token, email: email, id: existuser._id });
+
+          } else {
+              res.status(401).send({ error: "Invalid password or email" });
+          }
+      }
+  } catch (error) {
       res.status(500).send({ error: "Internal server error" });
-    }
-  });
+  }
+});
   
 
 
