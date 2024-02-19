@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken';
 
 import {createuser, getuserByname } from "./helper.js";
-import User from "../module/user.js";
+// import User from "../module/user.js";
 const router = express.Router();
 
 async function genHashedpassword(password){
@@ -12,8 +12,9 @@ async function genHashedpassword(password){
     const hashedpassword = await bcrypt.hash(password,salt);
    return hashedpassword;  
   }
-  genHashedpassword("shahul@123");
-  
+
+  genHashedpassword("shahul@1234");
+  //signup
 
   router.post("/signup", async function (req, res) {
     try {
